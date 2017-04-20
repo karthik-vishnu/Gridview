@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<com.category.grid.android.categorygrid.TagLayout android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/tag_layout"
+    app:numOfColumns="3"
+    xmlns:android="http://schemas.android.com/apk/res/android" />

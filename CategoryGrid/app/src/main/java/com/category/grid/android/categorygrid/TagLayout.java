@@ -1,8 +1,10 @@
 package com.category.grid.android.categorygrid;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Point;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +15,8 @@ import android.view.WindowManager;
  */
 public class TagLayout extends ViewGroup {
     int deviceWidth;
+    int childWithPadding;
+    int childLeftSpacing;
 
     public TagLayout(Context context) {
         this(context, null, 0);
@@ -24,6 +28,14 @@ public class TagLayout extends ViewGroup {
 
     public TagLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        Log.v("context "," "+context);
+        Log.v("attrs "," "+attrs);
+        Log.v("defStyleAttr "," "+defStyleAttr);
+
+        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.TagLayout);
+        Log.v("num of ","columns "+typedArray.getInteger(0, 0));
+        typedArray.recycle();
+
         init(context);
     }
 
@@ -32,53 +44,79 @@ public class TagLayout extends ViewGroup {
         Point deviceDisplay = new Point();
         display.getSize(deviceDisplay);
         deviceWidth = deviceDisplay.x;
+
     }
 
     @Override
-    protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        final int count = getChildCount();
-        int curWidth, curHeight, curLeft, curTop, maxHeight;
+    protected void onLayout(boolean b, int index, int i1, int i2, int i3) {
 
-        //get the available size of child view
-        final int childLeft = this.getPaddingLeft();
-        final int childTop = this.getPaddingTop();
-        final int childRight = this.getMeasuredWidth() - this.getPaddingRight();
-        final int childBottom = this.getMeasuredHeight() - this.getPaddingBottom();
-        final int childWidth = childRight - childLeft;
-        final int childHeight = childBottom - childTop;
+        int count = getChildCount();
+        int parentLeft = getPaddingLeft();
+        int parentTop = getPaddingTop();
+        int parentRight = getPaddingRight();
+        int parentBottom = getPaddingBottom();
 
-        maxHeight = 0;
-        curLeft = childLeft;
-        curTop = childTop;
+        int parentWidth = getMeasuredWidth();
+        int parentHeight = getMeasuredHeight();
 
-        for (int i = 0; i < count; i++) {
+        int childLeft = parentLeft;
+        int childTop = parentTop;
+        int maxHeight = 0;
+
+        for (int i=0; i<count; i++) {
             View child = getChildAt(i);
 
             if (child.getVisibility() == GONE)
                 return;
 
-            //Get the maximum size of the child
-            child.measure(MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(childHeight, MeasureSpec.AT_MOST));
-            curWidth = child.getMeasuredWidth();
-            curHeight = child.getMeasuredHeight();
-            //wrap is reach to the end
-            if (curLeft + curWidth >= childRight) {
-                curLeft = childLeft;
-                curTop += maxHeight;
+            child.measure(MeasureSpec.makeMeasureSpec(parentWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(parentHeight, MeasureSpec.AT_MOST));
+            int childWidth = child.getMeasuredWidth();
+            int childHeight = child.getMeasuredHeight();
+            if(childWidth != 0 ) {
+                if(i == 0) {
+                    int[] values = imageSize(parentWidth, childWidth);
+                    childLeftSpacing = values[0];
+                    childLeft = childLeftSpacing;
+                    childWithPadding = values[1];
+                    childTop = childLeftSpacing/2;
+                }
+                childWidth = childWithPadding;
+
+            }
+
+            if(childLeft >= (parentWidth-5)) {
+                childTop += maxHeight;
+                childLeft = childLeftSpacing;
                 maxHeight = 0;
             }
-            //do the layout
-            child.layout(curLeft, curTop, curLeft + curWidth, curTop + curHeight);
-            //store the max height
-            if (maxHeight < curHeight)
-                maxHeight = curHeight;
-            curLeft += curWidth;
+            child.layout(childLeft, childTop, childLeft + childWidth, childTop + childHeight);
+
+            if(maxHeight < childHeight)
+                maxHeight = childHeight;
+
+            childLeft += childWidth;
         }
+    }
+
+    public int[] imageSize(int parentWidth, int childWidth) {
+        int numOfColumns = parentWidth/childWidth;
+        int imageSize = parentWidth/numOfColumns;
+        int[] values = new int[2];
+        if(imageSize > childWidth) {
+            int diff = imageSize - childWidth;
+            diff = diff * numOfColumns;
+            diff = diff / (numOfColumns +1);
+            childWidth = childWidth + diff;
+            values[0] = diff;
+            values[1] = childWidth;
+        }
+        return values;
     }
 
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        Log.v("on ","measure " +widthMeasureSpec + heightMeasureSpec);
         int count = getChildCount();
         // Measurement will ultimately be computing these values.
         int maxHeight = 0;
@@ -99,7 +137,7 @@ public class TagLayout extends ViewGroup {
             measureChild(child, widthMeasureSpec, heightMeasureSpec);
             maxWidth += Math.max(maxWidth, child.getMeasuredWidth());
             mLeftWidth += child.getMeasuredWidth();
-
+            Log.v("Divided ","val "+ mLeftWidth/deviceWidth);
             if ((mLeftWidth / deviceWidth) > rowCount) {
                 maxHeight += child.getMeasuredHeight();
                 rowCount++;
